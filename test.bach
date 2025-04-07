@@ -1,0 +1,14 @@
+struct Point [
+    integer x.
+    integer y.
+]
+integer f[integer x, boolean b] [ ]
+void g[] [
+    integer a.
+    boolean b.
+    struct Point p.
+    p:x = a.
+    b = a == 3.
+    f(a + p:y*2, b).
+    g().
+]
