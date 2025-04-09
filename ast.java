@@ -134,10 +134,10 @@ class ProgramNode extends ASTnode {
     /**
      * Start name analysis of program.
      */
-    public void nameAnalysis() {
-        System.out.println("STAGE: Program");
+    public void analyzeNames() {
+        // System.out.println("STAGE: Program");
         SymTab symTab = new SymTab(); // First symbol table (list of hashmaps)
-        myDeclList.nameAnalysis(symTab);
+        myDeclList.analyzeNames(symTab);
 
     }
 
@@ -162,18 +162,20 @@ class DeclListNode extends ASTnode {
         }
     }
 
-    public void nameAnalysis(SymTab symTab) {
-        nameAnalysis(symTab, symTab);
+    public void analyzeNames(SymTab symTab) {
+        analyzeNames(symTab, symTab);
     }
 
-    public void nameAnalysis(SymTab symTab, SymTab globalTab) {
-        for (DeclNode node : myDecls) {
-            if (node instanceof VarDeclNode) {
-                ((VarDeclNode) node).nameAnalysis(symTab, globalTab);
-            } else {
-                node.nameAnalysis(symTab);
-            }
+    public void analyzeNames(SymTab symTab, SymTab nexTab) {
+        Iterator<DeclNode> it = myDecls.iterator();
+        while (it.hasNext()) {
+            DeclNode node = it.next();
+            if (node instanceof VarDeclNode)
+                ((VarDeclNode) node).analyzeNames(symTab, nexTab);
+            else
+                node.analyzeNames(symTab);
         }
+
     }
 
     // list of children (DeclNodes)
@@ -192,10 +194,10 @@ class StmtListNode extends ASTnode {
         }
     }
 
-    public void nameAnalysis(SymTab symTab) {
-        for (StmtNode stmt : myStmts) // Do name analysis on each decl
-            stmt.nameAnalysis(symTab);
-
+    public void analyzeNames(SymTab symTab) {
+        Iterator<StmtNode> it = myStmts.iterator();
+        while (it.hasNext())
+            it.next().analyzeNames(symTab); // Do name analysis on each decl
     }
 
     // list of children (StmtNodes)
@@ -218,10 +220,10 @@ class ExpListNode extends ASTnode {
         }
     }
 
-    public void nameAnalysis(SymTab symTab) {
-        for (ExpNode exp : myExps) {
-            exp.nameAnalysis(symTab);
-        }
+    public void analyzeNames(SymTab symTab) {
+        Iterator<ExpNode> it = myExps.iterator();
+        while (it.hasNext())
+            it.next().analyzeNames(symTab); // Do name analysis on each exp
     }
 
     // list of children (ExpNodes)
@@ -248,15 +250,14 @@ class FormalsListNode extends ASTnode {
         return myFormals.size();
     }
 
-    public LinkedList<String> nameAnalysis(SymTab symTab) {
-        LinkedList<String> typeList = new LinkedList<String>();
+    public LinkedList<String> analyzeNames(SymTab symTab) {
+        LinkedList<String> types = new LinkedList<>();
         for (FormalDeclNode node : myFormals) {
-            Sym sym = node.nameAnalysis(symTab);
-            if (sym != null) {
-                typeList.add(sym.getType());
-            }
+            Sym sym = node.analyzeNames(symTab); // add syms to list after analyzing
+            if (sym != null)
+                types.add(sym.toString());
         }
-        return typeList;
+        return types;
     }
 
     // list of children (FormalDeclNodes)
@@ -274,9 +275,9 @@ class FuncBodyNode extends ASTnode {
         myStmtList.unparse(p, indent);
     }
 
-    public void nameAnalysis(SymTab symTab) {
-        myDeclList.nameAnalysis(symTab);
-        myStmtList.nameAnalysis(symTab);
+    public void analyzeNames(SymTab symTab) {
+        myDeclList.analyzeNames(symTab); // decls first
+        myStmtList.analyzeNames(symTab);
     }
 
     // 2 children
@@ -289,7 +290,7 @@ class FuncBodyNode extends ASTnode {
 // **********************************************************************
 
 abstract class DeclNode extends ASTnode {
-    public abstract Sym nameAnalysis(SymTab symTab);
+    public abstract Sym analyzeNames(SymTab symTab);
 }
 
 class VarDeclNode extends DeclNode {
@@ -307,65 +308,53 @@ class VarDeclNode extends DeclNode {
         p.println(".");
     }
 
-    public Sym nameAnalysis(SymTab symTab) {
-        return nameAnalysis(symTab, symTab);
+    public Sym analyzeNames(SymTab symTab) {
+        return analyzeNames(symTab, symTab);
     }
 
-    public Sym nameAnalysis(SymTab symTab, SymTab globalTab) {
-        try {
-            boolean badDecl = false;
-            String name = myId.name();
-            Sym sym = null;
-            IdNode structId = null;
+    public Sym analyzeNames(SymTab symTab, SymTab nextTab) {
+        String name = myId.name();
+        Sym sym = null;
+        IdNode struct = null;
 
-            if (myType instanceof VoidNode) { // check for void type
-                ErrMsg.fatal(myId.lineNum(), myId.charNum(),
-                        "Non-function declared void");
-                badDecl = true;
-            }
+        if (myType instanceof VoidNode) { // check for void type
+            ErrMsg.fatal(myId.lineNum(), myId.charNum(),
+                    "Non-function declared void");
+        }
 
-            else if (myType instanceof StructNode) {
-                structId = ((StructNode) myType).idNode();
-                sym = globalTab.lookupGlobal(structId.name());
-
-                // if the name for the struct type is not found,
-                // or is not a struct type
+        else if (myType instanceof StructNode) {
+            struct = ((StructNode) myType).idNode();
+            try {
+                sym = nextTab.lookupGlobal(struct.name());
                 if (sym == null || !(sym instanceof StructDefSym)) {
-                    ErrMsg.fatal(structId.lineNum(), structId.charNum(),
-                            "Invalid name of struct type");
-                    badDecl = true;
-                } else {
-                    structId.link(sym);
+                    ErrMsg.fatal(struct.lineNum(), struct.charNum(),
+                            "Name of struct type invalid");
                 }
+            } catch (SymTabEmptyException e) {
+                ErrMsg.fatal(struct.lineNum(), struct.charNum(),
+                        "Name of struct type invalid");
             }
-
+        }
+        try {
             if (symTab.lookupLocal(name) != null) {
                 ErrMsg.fatal(myId.lineNum(), myId.charNum(),
-                        "Multiply declared identifier");
-                badDecl = true;
+                        "Identifier multiply-declared");
             }
-
-            if (!badDecl) { // insert into symbol table
-
-                if (myType instanceof StructNode) {
-                    sym = new StructSym(structId);
-                } else {
-                    sym = new Sym(myType.toString());
-                }
-                symTab.addDecl(name, sym);
-                // myId.link(sym);
-                return sym;
-            }
-        } catch (SymDuplicateException ex) {
-            System.err.println("Unexpected DuplicateSymException " +
-                    " in VarDeclNode.nameAnalysis");
-            System.exit(-1);
-        } catch (SymTabEmptyException ex) {
-            System.err.println("Unexpected EmptySymTableException " +
-                    " in VarDeclNode.nameAnalysis");
-            System.exit(-1);
+        } catch (SymTabEmptyException e) {
         }
-        return null;
+
+        if (myType instanceof StructNode)
+            sym = new StructSym(struct.name()); // clasify as struct with type
+        else
+            sym = new Sym(myType.toString());
+        try {
+            symTab.addDecl(name, sym);
+        } catch (SymDuplicateException e) {
+            ErrMsg.fatal(myId.lineNum(), myId.charNum(),
+                    "Identifier multiply-declared");
+        } catch (SymTabEmptyException e) {
+        }
+        return sym;
     }
 
     // 3 children
@@ -399,14 +388,13 @@ class FuncDeclNode extends DeclNode {
         p.println("]\n");
     }
 
-    public Sym nameAnalysis(SymTab symTab) {
+    public Sym analyzeNames(SymTab symTab) {
         String name = myId.name();
         FuncSym sym = null;
 
         try {
             sym = new FuncSym(myType.toString(), myFormalsList.length());
             symTab.addDecl(name, sym);
-            // myId.link(sym);
         } catch (SymTabEmptyException e) {
         } catch (SymDuplicateException e) {
             ErrMsg.fatal(myId.lineNum(), myId.charNum(),
@@ -415,12 +403,12 @@ class FuncDeclNode extends DeclNode {
 
         symTab.addScope(); // Params and locals in same scope
 
-        LinkedList<String> paramTypes = myFormalsList.nameAnalysis(symTab);
+        LinkedList<String> paramTypes = myFormalsList.analyzeNames(symTab);
         if (sym != null) {
             sym.addFormals(paramTypes);
         }
 
-        myBody.nameAnalysis(symTab);
+        myBody.analyzeNames(symTab);
 
         try {
             symTab.removeScope();
@@ -450,7 +438,7 @@ class FormalDeclNode extends DeclNode {
         myId.unparse(p, 0);
     }
 
-    public Sym nameAnalysis(SymTab symTab) {
+    public Sym analyzeNames(SymTab symTab) {
         String name = myId.name();
         boolean error = false;
         Sym sym = null;
@@ -473,14 +461,13 @@ class FormalDeclNode extends DeclNode {
             try {
                 sym = new Sym(myType.toString());
                 symTab.addDecl(name, sym);
-                myId.link(sym);
             } catch (SymDuplicateException ex) {
                 System.err.println("Unexpected DuplicateSymException " +
-                        " in VarDeclNode.nameAnalysis");
+                        " in VarDeclNode.analyzeNames");
                 System.exit(-1);
             } catch (SymTabEmptyException ex) {
                 System.err.println("Unexpected EmptySymTableException " +
-                        " in VarDeclNode.nameAnalysis");
+                        " in VarDeclNode.analyzeNames");
                 System.exit(-1);
             }
         }
@@ -509,7 +496,7 @@ class StructDeclNode extends DeclNode {
         p.println("]\n");
     }
 
-    public Sym nameAnalysis(SymTab symTab) {
+    public Sym analyzeNames(SymTab symTab) {
         String name = myId.name();
         boolean badDecl = false;
 
@@ -527,20 +514,19 @@ class StructDeclNode extends DeclNode {
         SymTab structSymTab = new SymTab();
 
         // process the fields of the struct
-        myDeclList.nameAnalysis(structSymTab, symTab);
+        myDeclList.analyzeNames(structSymTab, symTab);
 
         if (!badDecl) {
             try { // add entry to symbol table
                 StructDefSym sym = new StructDefSym(structSymTab);
                 symTab.addDecl(name, sym);
-                myId.link(sym);
             } catch (SymDuplicateException ex) {
                 System.err.println("Unexpected DuplicateSymException " +
-                        " in StructDeclNode.nameAnalysis");
+                        " in StructDeclNode.analyzeNames");
                 System.exit(-1);
             } catch (SymTabEmptyException ex) {
                 System.err.println("Unexpected EmptySymTableException " +
-                        " in StructDeclNode.nameAnalysis");
+                        " in StructDeclNode.analyzeNames");
                 System.exit(-1);
             }
         }
@@ -630,7 +616,7 @@ class StructNode extends TypeNode {
 // **********************************************************************
 
 abstract class StmtNode extends ASTnode {
-    abstract public void nameAnalysis(SymTab symTab);
+    abstract public void analyzeNames(SymTab symTab);
 }
 
 class AssignStmtNode extends StmtNode {
@@ -644,8 +630,8 @@ class AssignStmtNode extends StmtNode {
         p.println(".");
     }
 
-    public void nameAnalysis(SymTab symTab) {
-        myAssign.nameAnalysis(symTab);
+    public void analyzeNames(SymTab symTab) {
+        myAssign.analyzeNames(symTab);
     }
 
     // 1 child
@@ -663,8 +649,8 @@ class PostIncStmtNode extends StmtNode {
         p.println("++.");
     }
 
-    public void nameAnalysis(SymTab symTab) {
-        myExp.nameAnalysis(symTab);
+    public void analyzeNames(SymTab symTab) {
+        myExp.analyzeNames(symTab);
     }
 
     // 1 child
@@ -682,8 +668,8 @@ class PostDecStmtNode extends StmtNode {
         p.println("--.");
     }
 
-    public void nameAnalysis(SymTab symTab) {
-        myExp.nameAnalysis(symTab);
+    public void analyzeNames(SymTab symTab) {
+        myExp.analyzeNames(symTab);
     }
 
     // 1 child
@@ -708,16 +694,16 @@ class IfStmtNode extends StmtNode {
         p.println("}");
     }
 
-    public void nameAnalysis(SymTab symTab) {
-        myExp.nameAnalysis(symTab);
+    public void analyzeNames(SymTab symTab) {
+        myExp.analyzeNames(symTab);
         symTab.addScope();
-        myDeclList.nameAnalysis(symTab);
-        myStmtList.nameAnalysis(symTab);
+        myDeclList.analyzeNames(symTab);
+        myStmtList.analyzeNames(symTab);
         try {
             symTab.removeScope();
         } catch (SymTabEmptyException ex) {
             System.err.println("Unexpected EmptySymTableException " +
-                    " in IfStmtNode.nameAnalysis");
+                    " in IfStmtNode.analyzeNames");
             System.exit(-1);
         }
     }
@@ -756,26 +742,26 @@ class IfElseStmtNode extends StmtNode {
         p.println("}");
     }
 
-    public void nameAnalysis(SymTab symTab) {
-        myExp.nameAnalysis(symTab);
+    public void analyzeNames(SymTab symTab) {
+        myExp.analyzeNames(symTab);
         symTab.addScope();
-        myThenDeclList.nameAnalysis(symTab);
-        myThenStmtList.nameAnalysis(symTab);
+        myThenDeclList.analyzeNames(symTab);
+        myThenStmtList.analyzeNames(symTab);
         try {
             symTab.removeScope();
         } catch (SymTabEmptyException ex) {
             System.err.println("Unexpected EmptySymTableException " +
-                    " in IfStmtNode.nameAnalysis");
+                    " in IfStmtNode.analyzeNames");
             System.exit(-1);
         }
         symTab.addScope();
-        myElseDeclList.nameAnalysis(symTab);
-        myElseStmtList.nameAnalysis(symTab);
+        myElseDeclList.analyzeNames(symTab);
+        myElseStmtList.analyzeNames(symTab);
         try {
             symTab.removeScope();
         } catch (SymTabEmptyException ex) {
             System.err.println("Unexpected EmptySymTableException " +
-                    " in IfStmtNode.nameAnalysis");
+                    " in IfStmtNode.analyzeNames");
             System.exit(-1);
         }
     }
@@ -806,16 +792,16 @@ class WhileStmtNode extends StmtNode {
         p.println("}");
     }
 
-    public void nameAnalysis(SymTab symTab) {
-        myExp.nameAnalysis(symTab);
+    public void analyzeNames(SymTab symTab) {
+        myExp.analyzeNames(symTab);
         symTab.addScope();
-        myDeclList.nameAnalysis(symTab);
-        myStmtList.nameAnalysis(symTab);
+        myDeclList.analyzeNames(symTab);
+        myStmtList.analyzeNames(symTab);
         try {
             symTab.removeScope();
         } catch (SymTabEmptyException ex) {
             System.err.println("Unexpected EmptySymTableException " +
-                    " in IfStmtNode.nameAnalysis");
+                    " in IfStmtNode.analyzeNames");
             System.exit(-1);
         }
     }
@@ -838,8 +824,8 @@ class ReadStmtNode extends StmtNode {
         p.println(".");
     }
 
-    public void nameAnalysis(SymTab symTab) {
-        myExp.nameAnalysis(symTab);
+    public void analyzeNames(SymTab symTab) {
+        myExp.analyzeNames(symTab);
     }
 
     // 1 child (actually can only be an IdNode or a StructAccessNode)
@@ -858,8 +844,8 @@ class WriteStmtNode extends StmtNode {
         p.println(").");
     }
 
-    public void nameAnalysis(SymTab symTab) {
-        myExp.nameAnalysis(symTab);
+    public void analyzeNames(SymTab symTab) {
+        myExp.analyzeNames(symTab);
     }
 
     // 1 child
@@ -877,8 +863,8 @@ class CallStmtNode extends StmtNode {
         p.println(".");
     }
 
-    public void nameAnalysis(SymTab symTab) {
-        myCall.nameAnalysis(symTab);
+    public void analyzeNames(SymTab symTab) {
+        myCall.analyzeNames(symTab);
     }
 
     // 1 child
@@ -900,9 +886,9 @@ class ReturnStmtNode extends StmtNode {
         p.println(".");
     }
 
-    public void nameAnalysis(SymTab symTab) {
+    public void analyzeNames(SymTab symTab) {
         if (myExp != null)
-            myExp.nameAnalysis(symTab);
+            myExp.analyzeNames(symTab);
     }
 
     // 1 child
@@ -914,7 +900,7 @@ class ReturnStmtNode extends StmtNode {
 // **********************************************************************
 
 abstract class ExpNode extends ASTnode {
-    public void nameAnalysis(SymTab symTab) {
+    public void analyzeNames(SymTab symTab) {
     }
 }
 
@@ -987,7 +973,7 @@ class IdNode extends ExpNode {
         mySym = sym;
     }
 
-    public void nameAnalysis(SymTab symTab) {
+    public void analyzeNames(SymTab symTab) {
         try {
             Sym sym;
 
@@ -1072,7 +1058,7 @@ class StructAccessExpNode extends ExpNode {
     }
 
     /**
-     * nameAnalysis
+     * analyzeNames
      * Given a symbol table symTab, do:
      * - process the LHS of the dot access
      * - process the RHS of the dot access
@@ -1080,13 +1066,13 @@ class StructAccessExpNode extends ExpNode {
      * a dot access "higher up" in the AST can get access to the symbol
      * table for the appropriate struct definition
      */
-    public void nameAnalysis(SymTab symTab) {
+    public void analyzeNames(SymTab symTab) {
         try {
             badAccess = false;
             SymTab structSymTab = null; // to lookup RHS of dot-access
             Sym sym = null;
 
-            myLoc.nameAnalysis(symTab); // do name analysis on LHS
+            myLoc.analyzeNames(symTab); // do name analysis on LHS
             System.out.println("--------LOC NameAnalysis----------");
             // if myLoc is an ID, then sym will be a link to the ID's symbol
             if (myLoc instanceof IdNode) {
@@ -1098,8 +1084,11 @@ class StructAccessExpNode extends ExpNode {
                     badAccess = true;
                 } else if (sym instanceof StructSym) {
                     // get symbol table for struct type
-                    Sym tempSym = ((StructSym) sym).getStructType().sym();
-                    structSymTab = ((StructDefSym) tempSym).getSymTable();
+                    String structName = ((StructSym) sym).toString();
+                    Sym tempSym = symTab.lookupGlobal(structName);
+                    if (tempSym instanceof StructDefSym) {
+                        structSymTab = ((StructDefSym) tempSym).getSymTable();
+                    }
                 } else { // LHS is not a struct type
                     ErrMsg.fatal(id.lineNum(), id.charNum(),
                             "Dot-access of non-struct type");
@@ -1140,7 +1129,7 @@ class StructAccessExpNode extends ExpNode {
                 System.exit(-1);
             }
 
-            // do nameAnalysis on RHS of dot-access in the struct's symbol table
+            // do analyzeNames on RHS of dot-access in the struct's symbol table
             if (!badAccess) {
 
                 sym = structSymTab.lookupGlobal(myId.name());
@@ -1149,14 +1138,12 @@ class StructAccessExpNode extends ExpNode {
                     ErrMsg.fatal(myId.lineNum(), myId.charNum(),
                             "Invalid struct field name");
                     badAccess = true;
-                }
-
-                else {
+                } else {
                     myId.link(sym); // link the symbol
                     // if RHS is itself as struct type, link the symbol for its struct
                     // type to this dot-access node (to allow for chained dot-access)
                     if (sym instanceof StructSym) {
-                        mySym = ((StructSym) sym).getStructType().sym();
+                        mySym = symTab.lookupGlobal(((StructSym) sym).toString());
                     }
                 }
             }
@@ -1193,9 +1180,9 @@ class AssignExpNode extends ExpNode {
             p.print(")");
     }
 
-    public void nameAnalysis(SymTab symTab) {
-        myLhs.nameAnalysis(symTab);
-        myExp.nameAnalysis(symTab);
+    public void analyzeNames(SymTab symTab) {
+        myLhs.analyzeNames(symTab);
+        myExp.analyzeNames(symTab);
     }
 
     // 2 children
@@ -1223,9 +1210,9 @@ class CallExpNode extends ExpNode {
         p.print(")");
     }
 
-    public void nameAnalysis(SymTab symTab) {
-        myId.nameAnalysis(symTab);
-        myExpList.nameAnalysis(symTab);
+    public void analyzeNames(SymTab symTab) {
+        myId.analyzeNames(symTab);
+        myExpList.analyzeNames(symTab);
     }
 
     // 2 children
@@ -1238,8 +1225,8 @@ abstract class UnaryExpNode extends ExpNode {
         myExp = exp;
     }
 
-    public void nameAnalysis(SymTab symTab) {
-        myExp.nameAnalysis(symTab);
+    public void analyzeNames(SymTab symTab) {
+        myExp.analyzeNames(symTab);
     }
 
     // 1 child
@@ -1252,9 +1239,9 @@ abstract class BinaryExpNode extends ExpNode {
         myExp2 = exp2;
     }
 
-    public void nameAnalysis(SymTab symTab) {
-        myExp1.nameAnalysis(symTab);
-        myExp2.nameAnalysis(symTab);
+    public void analyzeNames(SymTab symTab) {
+        myExp1.analyzeNames(symTab);
+        myExp2.analyzeNames(symTab);
     }
 
     // 2 children

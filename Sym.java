@@ -7,10 +7,6 @@ public class Sym {
 		this.type = type;
 	}
 
-	public String getType() {
-		return type;
-	}
-
 	public String toString() {
 		return type;
 	}
@@ -61,31 +57,18 @@ class FuncSym extends Sym {
 }
 
 class StructSym extends Sym {
-	// new fields
-	public IdNode structType; // name of the struct type
 
-	public StructSym(IdNode id) {
-		super(id.toString());
-		structType = id;
+	public StructSym(String id) {
+		super(id);
 	}
 
-	public IdNode getStructType() {
-		return structType;
-	}
 }
 
-/**
- * The StructDefSym class is a subclass of the Sym class just for the
- * definition of a struct type.
- * Each StructDefSym contains a symbol table to hold information about its
- * fields.
- */
 class StructDefSym extends Sym {
-	// new fields
 	private SymTab symTab;
 
 	public StructDefSym(SymTab table) {
-		super("");
+		super("struct-def");
 		symTab = table;
 	}
 

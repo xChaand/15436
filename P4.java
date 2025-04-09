@@ -53,8 +53,7 @@ public class P4 {
             System.exit(-1);
         }
 
-        // ****** Add name analysis part here ******
-        ((ProgramNode) root.value).nameAnalysis();
+        ((ProgramNode) root.value).analyzeNames();
         if (!ErrMsg.fatal)
             ((ASTnode) root.value).unparse(outFile, 0);
         outFile.close();
