@@ -62,7 +62,7 @@ class FuncSym extends Sym {
 
 class StructSym extends Sym {
 	// new fields
-	private IdNode structType; // name of the struct type
+	public IdNode structType; // name of the struct type
 
 	public StructSym(IdNode id) {
 		super(id.toString());

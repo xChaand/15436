@@ -406,7 +406,7 @@ class FuncDeclNode extends DeclNode {
         try {
             sym = new FuncSym(myType.toString(), myFormalsList.length());
             symTab.addDecl(name, sym);
-            myId.link(sym);
+            // myId.link(sym);
         } catch (SymTabEmptyException e) {
         } catch (SymDuplicateException e) {
             ErrMsg.fatal(myId.lineNum(), myId.charNum(),
