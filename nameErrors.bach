@@ -1,3 +1,5 @@
+#where do the errors go? cant edit the makefile yet the .out file contains nothing. how does one test?
+
 struct A [
     integer a.
     boolean a.
@@ -7,7 +9,12 @@ struct A [
     integer b.
 ]
 
+struct ZZZZZZ [
+    void ssss.
+]
+
 void b[] [
+    void g.
     integer m.
     boolean n.
     x = 3.
