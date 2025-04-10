@@ -12,3 +12,26 @@ void g[] [
     f(a + p:y*2, b).
     g().
 ]
+
+# my tests
+
+struct Car [
+    integer speed.
+    boolean sold.
+]
+
+void func[integer x, boolean y] [
+    struct Car c.
+    if (x > 1) {
+        struct Point p2.
+        g().
+    } else {
+        struct Point p2.
+        input -> p2:x.
+        while (y) {
+            disp <- x + 33.
+            c:sold = TRUE.
+            c:speed = 100.
+        }
+    }
+]

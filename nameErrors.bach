@@ -1,0 +1,9 @@
+struct Point [
+    integer x.
+    integer y.
+]
+
+struct Point [
+    integer z.
+    boolean a.
+]

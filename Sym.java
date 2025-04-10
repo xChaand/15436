@@ -12,63 +12,41 @@ public class Sym {
 	}
 }
 
+/**
+ * Subclass to store types of parameters of a function
+ */
 class FuncSym extends Sym {
-	String returnType;
-	LinkedList<String> paramTypes;
-	int numParams;
+	private LinkedList<String> paramTypes;
 
-	public FuncSym(String returnType, int numParams) {
-		super("function");
-		this.returnType = returnType;
-		this.numParams = numParams;
+	public FuncSym(String returnType) {
+		super(returnType);
 	}
 
 	public void addFormals(LinkedList<String> list) {
 		paramTypes = list;
 	}
 
-	public String getReturnType() {
-		return returnType;
-	}
-
-	public int getNumParams() {
-		return numParams;
-	}
-
-	public LinkedList<String> getParamTypes() {
-		return paramTypes;
-	}
-
 	public String toString() {
-		// make list of formals
-		String str = "";
-		boolean notfirst = false;
-		for (String type : paramTypes) {
-			if (notfirst)
-				str += ",";
-			else
-				notfirst = true;
-			str += type.toString();
-		}
-
-		str += "->" + returnType.toString();
+		String str = String.join(",", paramTypes);
+		str += "->" + super.toString();
 		return str;
 	}
 }
 
 class StructSym extends Sym {
-
 	public StructSym(String id) {
 		super(id);
 	}
-
 }
 
+/**
+ * Subclass to analyze names in symtab of the struct
+ */
 class StructDefSym extends Sym {
 	private SymTab symTab;
 
 	public StructDefSym(SymTab table) {
-		super("struct-def");
+		super("struct-def"); // debuging only (not actaul type)
 		symTab = table;
 	}
 
