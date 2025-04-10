@@ -1047,10 +1047,15 @@ class StructAccessExpNode extends ExpNode {
         }
 
         try {
-            sym = structSymTab.lookupGlobal(myId.toString());
-            myId.setSym(sym);
-            if (sym instanceof StructSym) {
-                mySym = symTab.lookupGlobal(((StructSym) sym).toString());
+            if (structSymTab != null) {
+                sym = structSymTab.lookupGlobal(myId.toString());
+                myId.setSym(sym);
+                if (sym instanceof StructSym) {
+                    mySym = symTab.lookupGlobal(((StructSym) sym).toString());
+                }
+            } else {
+                ErrMsg.fatal(myId.lineNum(), myId.charNum(),
+                        "Identifier undeclared");
             }
         } catch (SymTabEmptyException e) {
             ErrMsg.fatal(myId.lineNum(), myId.charNum(),

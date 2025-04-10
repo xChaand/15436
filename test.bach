@@ -1,16 +1,30 @@
+struct idk [
+    integer a.
+]
+
 struct Point [
     integer x.
     integer y.
+    struct idk lol.
 ]
+
 integer f[integer x, boolean b] [ ]
 void g[] [
+    struct idk k.
     integer a.
     boolean b.
     struct Point p.
+    k:a = 3.
+    if (p:lol:a == 3) {
+        p:b = FALSE.
+        return p:lol:a.
+    }
     p:x = a.
     b = a == 3.
     f(a + p:y*2, b).
     g().
+    a = 3.
+    return a.
 ]
 
 # my tests
@@ -34,4 +48,99 @@ void func[integer x, boolean y] [
             c:speed = 100.
         }
     }
+]
+
+struct A [
+    integer a.
+    integer b.
+]
+
+void d[] [
+    integer a.
+    boolean b.
+    struct A c.
+    struct Point zzz.
+    func(a, b).
+    c:a = a.
+    b = a == 3.
+    c(a + c:b * 2, b).
+    d().
+]
+
+struct E [
+    integer a.
+    boolean b.
+]
+
+void f[integer a, boolean b] [
+    struct E c.
+    if (a > 1) {
+        struct A d.
+        d().
+    } else {
+        struct A d.
+        input -> d:a.
+        while (b) {
+            disp <- a + 33.
+            c:b = TRUE.
+            c:a = 100.
+        }
+    }
+]
+
+struct G [
+    integer a.
+    boolean b.
+]
+
+void h[integer a, boolean b] [
+    struct G c.
+    integer d.
+    boolean e.
+    c:a = a.
+    e = b.
+]
+
+struct I [
+    integer a.
+    integer b.
+]
+
+void j[integer a] [
+    struct I b.
+    integer c.
+    c = a + 10.
+    b:a = c.
+    b:b = c * 2.
+]
+
+void k[boolean a] [
+    integer b.
+    if (a) {
+        integer b.
+        boolean c.
+    } else {
+        integer b.
+        boolean c.
+    }
+    while (a) {
+        integer c.
+    }
+]
+
+struct L [
+    integer L.
+    boolean a.
+]
+
+void m[integer a] [
+    boolean b.
+    integer c.
+    struct L d.
+    boolean zz.
+    boolean xx.
+    b = xx | zz.
+    b = a > 0.
+    d:a = b.
+    d:L = a.
 ]

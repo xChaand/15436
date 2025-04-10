@@ -1,9 +1,106 @@
-struct Point [
-    integer x.
-    integer y.
-]
-
-struct Point [
-    integer z.
+struct A [
+    integer a.
     boolean a.
 ]
+
+struct A [
+    integer b.
+]
+
+void b[] [
+    integer m.
+    boolean n.
+    x = 3.
+    y:z = 2.
+    m = m + 1.
+    n = m > 1.
+    y = m * 2.
+]
+
+void c[] [
+    integer a.
+    integer b.
+    a:x = 1.
+    b = a + 3.
+    a = b.
+    while (TRUE) {
+        integer c.
+        c = b + a.
+    }
+]
+
+struct B [
+    integer x.
+]
+
+void d[] [
+    struct B b.
+    integer z.
+    b:y = 5.
+    z = b:x + 10.
+    disp <- z.
+    b:x = z * 2.
+]
+
+void e[] [
+    void v.
+    integer a.
+    boolean b.
+    a = 5.
+    b = a == 5.
+]
+
+void f[] [
+    struct C c.
+    integer x.
+    x = 7.
+    x = x + 1.
+    if (x > 3) {
+        boolean y.
+        y = TRUE.
+    }
+]
+
+void g[integer a, boolean a] [
+    integer b.
+    b = a + 1.
+    if (b > 2) {
+        integer c.
+        c = b.
+    }
+    while (a) {
+        boolean d.
+        d = TRUE.
+    }
+]
+
+void h[integer a] [
+    boolean a.
+    integer b.
+    b = a == TRUE.
+    a = FALSE.
+    while (TRUE) {
+        integer c.
+        c = b.
+    }
+]
+
+void i[] [
+    integer x.
+    integer z.
+    boolean x.
+    x = TRUE.
+    if (x) {
+        integer y.
+        y = 1.
+    }
+    z = 10.
+]
+
+void j[] [ integer z.]
+
+
+struct K [
+    integer a.
+]
+integer K.
